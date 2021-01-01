@@ -1,0 +1,58 @@
+// VAR
+$red-1: #693030;
+$red-2: #955151;
+$pink-1: #ffcdcd;
+$pink-2: #c89696;
+// VAR
+
+// GLOBAL
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+
+	// text selection color
+	&::selection {
+		background: $pink-1; // Chrome
+		}
+	&::-moz-selection {
+		background: $pink-2; // FireFox
+	}
+}
+
+a {
+	text-decoration: none;
+}
+
+ul {
+	list-style: none;
+}
+
+body {
+	font-family: 'Oswald', serif;
+	background: $red-2;
+}
+
+// SCROLLBAR
+// - FireFox
+html {
+	scrollbar-color: wheat $red-1;
+}
+// - Chrome
+body::-webkit-scrollbar {
+	width: 14px;
+}
+body::-webkit-scrollbar-thumb {
+	background: wheat;
+	border-radius: 12px;
+	border: 4px solid $red-1;
+
+	&:active {
+		// background: $red-1;
+	}
+}
+body::-webkit-scrollbar-track {
+	background: $red-1;
+}
+// SCROLLBAR
+//GLOBAL

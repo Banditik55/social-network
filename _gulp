@@ -1,0 +1,10 @@
+- win
+npm i gulp-cli -g
+npm i --save-dev gulp gulp-sass browser-sync
+
+- linux
+sudo apt install gulp
+npm i --save-dev gulp gulp-sass browser-sync gulp-cli
+
+-
+gulp watch

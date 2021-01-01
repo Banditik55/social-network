@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/public/css/profile.css">
+    <link rel="shortcut icon" href="https://go.dev/favicon.ico" type="image/x-icon">
+    <title>Profile page</title>
+    <script defer>
+        function hideTelegramAuth(){
+            const el = document.querySelector('.telegramAuth')
+            if (el) el.style = 'display: none;'
+        }
+
+        function showCreatePostContainer(){
+            const button = document.querySelector('#createPostButton')
+            if (button) button.style = 'display: none;'
+            const container = document.querySelector('.createPostContainer')
+            if (container) container.style = ''
+        }
+    </script>
+</head>
+<body>
+    <div class="telegramAuth">
+        <div class="telegramAuth_inner">
+            <p>Your account don't use Telegram auth. You can add it on <a href="/settings"><b>settings page</b></a></p><button onclick="hideTelegramAuth()">Close</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="container_inner">
+            <div class="top">
+                <div class="t1">
+                    <img src="https://ichef.bbci.co.uk/news/976/cpsprodpb/41CF/production/_109474861_angrycat-index-getty3-3.jpg" alt="">
+                    <a href="/msg/@banditik55">Send message</a>
+                    <a href="/admin/resetAvatar">Reset avatar</a>
+                </div>
+                <div class="t2">
+                    <div>
+                        <p><b>Dmitry</b></p>
+                    </div>
+                    <div>
+                        <p>- Golang dev</p>
+                    </div>
+                    <div class="t2_country">
+                        <img src="/public/img/country.svg" alt="">
+                        <p>Russia</p>
+                    </div>
+                    <div>
+                        <p>@banditik55</p>
+                    </div>
+                    <div class="t2_date">
+                        <img src="/public/img/calendar.svg" alt="">
+                        <p>01.01.2021</p>
+                    </div>
+                </div>
+            </div>
+            <div class="main">
+                <div class="createPost">
+                    <button id="createPostButton" onclick="showCreatePostContainer()">Create post</button>
+                    <div class="createPostContainer" style="display: none;">
+                        <form action="/post/create" method="POST">
+                            <p><b>Create post</b></p>
+                            <textarea name="text" cols="50" rows="2" placeholder="text" maxlength="150"></textarea>
+                            <input type="text" name="image" placeholder="link to image" maxlength="100">
+                            <div class="info">
+                                <p>Max. characters in text: 300</p>
+                                <p>Max. characters in image: 100</p>
+                                <p>You can leave the image field empty</p>
+                            </div>
+                            <button>Create</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="posts">
+                    <div class="post">
+                        <div class="post_top">
+                            <p>1 jan. 2021</p>
+                            <div class="heart">
+                                <img src="/public/img/heart.svg" alt="">
+                                <p>0</p>
+                            </div>
+                            <form action="/post/delete" method="POST">
+                                <button type="submit">delete post</button>
+                            </form>
+                        </div>
+                        <div class="post_main">
+                            <p>Hello world! First post.</p>
+                            <img src="https://ichef.bbci.co.uk/news/976/cpsprodpb/41CF/production/_109474861_angrycat-index-getty3-3.jpg" alt="">
+                        </div>
+                        <div class="post_bottom">
+                            <button>up</button><button>down</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

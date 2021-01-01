@@ -1,0 +1,59 @@
+.pages
+ -> login (/login)
+ -> register (/register)
+ -> 404
+ -> user profile (example.com/@user)
+ -> all users (/users)
+ -> messages (/msg)
+ -> settings (/settings)
+ -> about (/about)
+
+.pages detailed
+ -> login
+  -- login password
+ -> register
+  -- login password name
+ -> user profile
+  -- name description country avatar link date posts
+  -- admin -- delete post, reset avatar
+ -> settings
+  -- change - name, description, country, avatar, link, telegram_account, authWithTelegram, password
+
+.db (sn)
+ .users
+ -> uid - unique
+ -> login - unique
+ -> password
+ -> name
+ -> description
+ -> country
+ -> link to avatar
+ -> link (@user) - unique
+ -> date
+ -> telegram_account
+ -> authWithTelegram
+ -> telegramAuthNotify
+
+ .posts
+ -> id - unique
+ -> uid
+ -> date
+ -> like (up, down)
+ -> type (text, image, text + image)
+ -> assets (text, link to image)
+ -> hide
+
+ .messages
+ -> from uid
+ -> to uid
+ -> date
+ -> text
+ -> hide
+
+ .authCode
+
+.TODO
+ -> шапка на всех страницах
+ -> страницы: все пользователи, сообщения, о сайте
+ -> backend
+ -> mongodb

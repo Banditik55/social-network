@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/public/css/settings.css">
+    <link rel="shortcut icon" href="https://go.dev/favicon.ico" type="image/x-icon">
+    <title>Settings page</title>
+</head>
+<body>
+    <div class="container">
+        <div class="container_inner">
+            <form action="/settings" method="POST">
+                <h2>Settings page</h2>
+                <p>Name</p>
+                <input type="text" placeholder="name" name="name" value="">
+                <p>Description</p>
+                <input type="text" placeholder="description" name="description" value="">
+                <p>Country</p>
+                <input type="text" placeholder="country" name="country" value="">
+                <p>Avatar</p>
+                <input type="text" placeholder="link to image" name="avatar" value="">
+                <p>Profile link (web.com/@link)</p>
+                <input type="text" placeholder="link" name="link" value="">
+                <p>Your telegram id</p>
+                <input type="text" placeholder="telegram id" name="telegram" value="">
+                <p>Turn on auth with Telegram account</p>
+                <button>turn on</button>
+                <button type="submit">save all</button>
+                <p>Change password</p>
+                <input type="password" placeholder="current password">
+                <input type="password" placeholder="new password">
+                <button>change password</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
