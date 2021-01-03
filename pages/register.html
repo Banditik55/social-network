@@ -10,8 +10,11 @@
 <body>
     <div class="container">
         <div class="container_inner">
-            <form action="/login" method="POST">
+            <form action="/register" method="POST">
                 <h2>Register page</h2>
+                {{ if .Info }}
+                <h4>{{ .Info }}</h4>
+                {{ end }}
                 <input type="text" placeholder="login" name="login">
                 <input type="password" placeholder="password" name="password">
                 <input type="text" placeholder="name" name="name">

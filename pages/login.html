@@ -12,6 +12,9 @@
         <div class="container_inner">
             <form action="/login" method="POST">
                 <h2>Login page</h2>
+                {{ if .Info }}
+                <h4>{{ .Info }}</h4>
+                {{ end }}
                 <input type="text" placeholder="login" name="login">
                 <input type="password" placeholder="password" name="password">
                 <button type="submit">log in</button>
