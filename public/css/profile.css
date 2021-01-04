@@ -129,7 +129,7 @@ body {
               .container_inner .main .posts .post_top .heart img {
                 width: 14px;
                 transform: translateY(-2px); }
-            .container_inner .main .posts .post_top form button {
+            .container_inner .main .posts .post_top button {
               color: wheat;
               background: none;
               border: none;
@@ -149,3 +149,5 @@ body {
               background: none;
               border: none;
               cursor: pointer; }
+        .container_inner .main .posts .post + .post {
+          margin-top: 15px; }

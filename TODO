@@ -21,7 +21,7 @@
 
 .db (sn)
  .users
- -> uid - unique
+ -> id - unique
  -> login - unique
  -> password
  -> name
@@ -33,9 +33,10 @@
  -> telegram_account
  -> authWithTelegram
  -> telegramAuthNotify
+ -> role (god, user)
 
  .posts
- -> id - unique
+ -> id
  -> uid
  -> date
  -> like (up, down)
@@ -44,6 +45,7 @@
  -> hide
 
  .messages
+ -> id
  -> from uid
  -> to uid
  -> date

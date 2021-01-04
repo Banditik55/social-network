@@ -200,14 +200,11 @@ body {
 							}
 						}
 
-						& form {
-
-							& button {
-								color: wheat;
-								background: none;
-								border: none;
-								cursor: pointer;
-							}
+						& button {
+							color: wheat;
+							background: none;
+							border: none;
+							cursor: pointer;
 						}
 					}
 
@@ -231,6 +228,10 @@ body {
 							cursor: pointer;
 						}
 					}
+				}
+
+				& .post + .post {
+					margin-top: 15px;
 				}
 			}
 		}

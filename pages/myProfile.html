@@ -10,6 +10,23 @@
         function hideTelegramAuth(){
             const el = document.querySelector('.telegramAuth')
             if (el) el.style = 'display: none;'
+
+            fetch('./api/telegramAuthNotify')  
+            .then(  
+                function(response) {  
+                    if (response.status !== 200) {  
+                        console.log('Looks like there was a problem. Status Code: ' + response.status)
+                        return
+                    }
+
+                    response.json().then(function(data) {  
+                        console.log(data)
+                    })
+                }  
+            )  
+            .catch(function(err) {  
+                console.log('Fetch Error :-S', err)
+            })
         }
 
         function showCreatePostContainer(){
@@ -18,47 +35,75 @@
             const container = document.querySelector('.createPostContainer')
             if (container) container.style = ''
         }
+
+        function removePost(id) {
+            fetch('./posts/remove?q=' + id)
+            .then(  
+                function(response) {  
+                    if (response.status !== 200) {  
+                        console.log('Looks like there was a problem. Status Code: ' + response.status)
+                        return
+                    }
+                    document.location.reload()
+                }  
+            )  
+            .catch(function(err) {  
+                console.log('Fetch Error :-S', err)
+            })
+        }
     </script>
 </head>
 <body>
+    {{ if .TelegramAuthNotify }}
     <div class="telegramAuth">
         <div class="telegramAuth_inner">
             <p>Your account don't use Telegram auth. You can add it on <a href="/settings"><b>settings page</b></a></p><button onclick="hideTelegramAuth()">Close</button>
         </div>
     </div>
+    {{ end }}
     <div class="container">
         <div class="container_inner">
             <div class="top">
                 <div class="t1">
-                    <img src="https://ichef.bbci.co.uk/news/976/cpsprodpb/41CF/production/_109474861_angrycat-index-getty3-3.jpg" alt="">
-                    <a href="/msg/@banditik55">Send message</a>
-                    <a href="/admin/resetAvatar">Reset avatar</a>
+                    <img src="{{ .Avatar }}" alt="">
+                    <a href="/msg/@{{ .Link }}">Send message</a>
+                    {{ if eq .Role "god" }}
+                    <a href="/admin/resetAvatar?q={{ .NewID }}">Reset avatar</a>
+                    {{ end }}
                 </div>
                 <div class="t2">
                     <div>
-                        <p><b>Dmitry</b></p>
+                        <p><b>{{ .Name }}</b></p>
                     </div>
+                    {{ if .Description }}
                     <div>
-                        <p>- Golang dev</p>
+                        <p>- {{ .Description }}</p>
                     </div>
+                    {{ end }}
+                    {{ if .Country }}
                     <div class="t2_country">
                         <img src="/public/img/country.svg" alt="">
-                        <p>Russia</p>
+                        <p>{{ .Country }}</p>
                     </div>
+                    {{ end }}
+                    {{ if .Link }}
                     <div>
-                        <p>@banditik55</p>
+                        <p>@{{ .Link }}</p>
                     </div>
+                    {{ end }}
+                    {{ if .Date }}
                     <div class="t2_date">
                         <img src="/public/img/calendar.svg" alt="">
-                        <p>01.01.2021</p>
+                        <p>{{ .NewDate }}</p>
                     </div>
+                    {{ end }}
                 </div>
             </div>
             <div class="main">
                 <div class="createPost">
                     <button id="createPostButton" onclick="showCreatePostContainer()">Create post</button>
                     <div class="createPostContainer" style="display: none;">
-                        <form action="/post/create" method="POST">
+                        <form action="/posts/create" method="POST">
                             <p><b>Create post</b></p>
                             <textarea name="text" cols="50" rows="2" placeholder="text" maxlength="150"></textarea>
                             <input type="text" name="image" placeholder="link to image" maxlength="100">
@@ -72,25 +117,29 @@
                     </div>
                 </div>
                 <div class="posts">
+                    {{ range .Posts }}
+                    {{ if not .hide }}
                     <div class="post">
                         <div class="post_top">
-                            <p>1 jan. 2021</p>
+                            <p>{{ .date }}</p>
                             <div class="heart">
                                 <img src="/public/img/heart.svg" alt="">
                                 <p>0</p>
                             </div>
-                            <form action="/post/delete" method="POST">
-                                <button type="submit">delete post</button>
-                            </form>
+                            <button onclick="removePost('{{ ._id.Hex }}')">delete post</button>
                         </div>
                         <div class="post_main">
-                            <p>Hello world! First post.</p>
-                            <img src="https://ichef.bbci.co.uk/news/976/cpsprodpb/41CF/production/_109474861_angrycat-index-getty3-3.jpg" alt="">
+                            <p>{{ .text }}</p>
+                            {{ if .image }}
+                            <img src="{{ .image }}" alt="">
+                            {{ end }}
                         </div>
                         <div class="post_bottom">
                             <button>up</button><button>down</button>
                         </div>
                     </div>
+                    {{ end }}
+                    {{ end }}
                 </div>
             </div>
         </div>
