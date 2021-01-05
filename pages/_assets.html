@@ -1,0 +1,18 @@
+{{ define "header" }}
+<div class="header">
+    <div class="header_inner">
+        <a href="/"><p>Social Network</p></a>
+        <menu>
+            <li><a href="/about">About</a></li>
+            <li><a href="/users">All users</a></li>
+            {{ if not .LoggedIn }}
+            <li><a href="/login">Log in</a></li>
+            {{ else }}
+            <li><a href="/profile">My profile</a></li>
+            <li><a href="/msg">Messages</a></li>
+            <li><a href="/logout">Log out</a></li>
+            {{ end }}
+        </menu>
+    </div>
+</div>
+{{ end }}

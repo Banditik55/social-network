@@ -29,21 +29,24 @@ var (
 )
 
 func main() {
-	// _uuid, _ := uuid.NewRandom()
-	// fmt.Println(_uuid.String())
-	// _uuid, _ := uuid.Parse("f441e9e8-9a97-43fb-84be-faaee4089de30")
+	envErr := env.Load(".env")
+	if envErr != nil {
+		panic("error loading .env file")
+	}
 
-	go mongoInit()
+	mongoInit()
 	webInit()
+
+	// fmt.Println(bson.D{{"k", "v"}, {"k2", "v2"}})
+	// fmt.Println(bson.A{"k", "v", "k2", "v2"})
+	// fmt.Println(bson.M{"k": "v", "k2": "v2"})
 }
 
 func mongoInit() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	var err error
-	mongoClient, err = mongo.Connect(ctx, options.Client().ApplyURI(
-		"mongodb+srv://admin:ALCy22ziJQ8cPfEt@cluster.wbqd8.mongodb.net/main?retryWrites=true&w=majority",
-	))
+	mongoClient, err = mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("MONGO_DB")))
 	if err != nil {
 		panic(err)
 	}
@@ -73,14 +76,47 @@ func mongoInit() {
 	// })
 	// id := res.InsertedID
 	// fmt.Println("InsertOne", id, res)
+
+	// type Trainer struct {
+	// 	Name    string
+	// 	Country string
+	// }
+
+	// collection := mongoClient.Database("main").Collection("users")
+
+	// options := options.Find()
+	// filter := bson.M{}
+
+	//------
+	// var results []*Trainer
+	// cur, err := collection.Find(context.TODO(), filter, options)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// for cur.Next(context.TODO()) {
+
+	// 	var elem Trainer
+	// 	err := cur.Decode(&elem)
+	// 	fmt.Println(elem)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+
+	// 	results = append(results, &elem)
+	// }
+
+	// if err := cur.Err(); err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// cur.Close(context.TODO())
+
+	// fmt.Println(results[0])
+	// fmt.Printf("Found multiple documents (array of pointers): %+v\n", results)
 }
 
 func webInit() {
-	envErr := env.Load(".env")
-	if envErr != nil {
-		panic("error loading .env file")
-	}
-
 	http.HandleFunc("/", webRender)
 	port := os.Getenv("PORT")
 	fmt.Println("http server started on port", port)
@@ -101,17 +137,54 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 		default:
 			if profile {
 				link := path[2:]
-				fmt.Println(link)
 
-				tmpl, err := template.ParseFiles(pagesPath + "profile.html")
+				user, err := getUserFromLink(link)
 				if err != nil {
-					http.Error(w, err.Error(), 404)
-					return
-				}
+					tmpl, err := template.ParseFiles(pagesPath + "404.html")
+					if err != nil {
+						http.Error(w, err.Error(), 404)
+						return
+					}
 
-				if err := tmpl.Execute(w, nil); err != nil {
-					http.Error(w, err.Error(), 404)
-					return
+					if err := tmpl.Execute(w, nil); err != nil {
+						http.Error(w, err.Error(), 404)
+						return
+					}
+				} else {
+					tmpl, err := template.ParseFiles(pagesPath+"profile.html", pagesPath+"_assets.html")
+					if err != nil {
+						http.Error(w, err.Error(), 404)
+						return
+					}
+
+					loggedIn := false
+					cookieLogin, _ := r.Cookie("login")
+					cookieToken, _ := r.Cookie("token")
+					if cookieLogin != nil && cookieToken != nil {
+						loggedIn = true
+					}
+
+					_time := time.Unix(user.Date, 0)
+					posts := getPostsFromUserID(user.ID.Hex())
+					type Parse struct {
+						User
+						NewDate  time.Time
+						NewID    string
+						Posts    []Post
+						LoggedIn bool
+					}
+					parse := Parse{
+						User:     user,
+						NewDate:  _time,
+						NewID:    user.ID.Hex(),
+						Posts:    posts,
+						LoggedIn: loggedIn,
+					}
+
+					if err := tmpl.Execute(w, parse); err != nil {
+						http.Error(w, err.Error(), 404)
+						return
+					}
 				}
 			} else {
 				if isFile(path) {
@@ -134,29 +207,24 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		case "/":
-			tmpl, err := template.ParseFiles(pagesPath + "login.html")
-			if err != nil {
-				http.Error(w, err.Error(), 404)
-				return
-			}
-
-			if err := tmpl.Execute(w, nil); err != nil {
-				http.Error(w, err.Error(), 404)
-				return
-			}
+			http.Redirect(w, r, "/profile", http.StatusSeeOther)
+			return
 		case "/register":
-			// cookieLogin, _ := r.Cookie("login")
-			// cookieToken, _ := r.Cookie("token")
-			// if cookieLogin != nil && cookieToken != nil {
-			// 	http.Redirect(w, r, "/profile", http.StatusSeeOther)
-			// 	return
-			// }
+			cookieLogin, _ := r.Cookie("login")
+			cookieToken, _ := r.Cookie("token")
+			if cookieLogin != nil && cookieToken != nil {
+				_, err := getUserFromLogin(cookieLogin.Value)
+				if err == nil {
+					http.Redirect(w, r, "/profile", http.StatusSeeOther)
+					return
+				}
+			}
 
 			cookie, _ := r.Cookie("register_info")
 			var info string
 			if cookie != nil {
 				info = cookie.Value
-				removeCookie(w, "register_info")
+				removeNotifyCookie(w, "register_info")
 			}
 			type Data struct {
 				Info string
@@ -175,18 +243,21 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case "/login":
-			// cookieLogin, _ := r.Cookie("login")
-			// cookieToken, _ := r.Cookie("token")
-			// if cookieLogin != nil && cookieToken != nil {
-			// 	http.Redirect(w, r, "/profile", http.StatusSeeOther)
-			// 	return
-			// }
+			cookieLogin, _ := r.Cookie("login")
+			cookieToken, _ := r.Cookie("token")
+			if cookieLogin != nil && cookieToken != nil {
+				_, err := getUserFromLogin(cookieLogin.Value)
+				if err == nil {
+					http.Redirect(w, r, "/profile", http.StatusSeeOther)
+					return
+				}
+			}
 
 			cookie, _ := r.Cookie("login_info")
 			var info string
 			if cookie != nil {
 				info = cookie.Value
-				removeCookie(w, "login_info")
+				removeNotifyCookie(w, "login_info")
 			}
 			type Data struct {
 				Info string
@@ -206,49 +277,49 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		case "/profile":
-			cookieLogin, _ := r.Cookie("login")
-			cookieToken, _ := r.Cookie("token")
-			if cookieLogin == nil || cookieToken == nil {
-				http.Redirect(w, r, "/login", http.StatusSeeOther)
+			activeCookie := isActiveCookie(r)
+			if !activeCookie {
+				http.Redirect(w, r, "/logout", http.StatusSeeOther)
 				return
 			}
 
-			user, err := findUser(cookieLogin.Value)
+			cookieLogin, _ := r.Cookie("login")
+			cookieToken, _ := r.Cookie("token")
+
+			user, err := getUserFromLogin(cookieLogin.Value)
 			if err != nil {
-				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				http.Redirect(w, r, "/logout", http.StatusSeeOther)
 				return
 			}
 
 			check := comparePasswords(cookieToken.Value, []byte(user.ID.String()+user.Password))
 			if check {
-				tmpl, err := template.ParseFiles(pagesPath + "myProfile.html")
+				tmpl, err := template.ParseFiles(pagesPath+"myProfile.html", pagesPath+"_assets.html")
 				if err != nil {
 					http.Error(w, err.Error(), 404)
 					return
 				}
 
-				_time := time.Unix(user.Date, 0)
+				_time := time.Unix(user.Date, 0).Format("01-02-2006")
+				posts := getPostsFromUserID(user.ID.Hex())
 
-				// posts := []map[string]string{
-				// 	{
-				// 		"title": "hello",
-				// 		"image": "from server",
-				// 	},
-				// }
-
-				posts := findPostsFromUserID(user.ID.Hex())
+				for i, v := range posts {
+					posts[i].FullDate = time.Unix(v.Date, 0).Format("01-02-2006")
+				}
 
 				type Parse struct {
 					User
-					NewDate time.Time
-					NewID   string
-					Posts   []bson.M
+					NewDate  string
+					NewID    string
+					Posts    []Post
+					LoggedIn bool
 				}
 				parse := Parse{
-					User:    user,
-					NewDate: _time,
-					NewID:   user.ID.Hex(),
-					Posts:   posts,
+					User:     user,
+					NewDate:  _time,
+					NewID:    user.ID.Hex(),
+					Posts:    posts,
+					LoggedIn: true,
 				}
 				if err := tmpl.Execute(w, parse); err != nil {
 					http.Error(w, err.Error(), 404)
@@ -258,7 +329,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
-		case "/api/telegramAuthNotify":
+		case "/myProfile/telegramAuthNotify":
 			cookieLogin, _ := r.Cookie("login")
 			cookieToken, _ := r.Cookie("token")
 			if cookieLogin == nil || cookieToken == nil {
@@ -266,7 +337,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			user, err := findUser(cookieLogin.Value)
+			user, err := getUserFromLogin(cookieLogin.Value)
 			if err != nil {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
@@ -282,11 +353,10 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 					{"telegram_auth_notify", false},
 				}}}
 				opts := options.Update().SetUpsert(true)
-				result, err := collection.UpdateOne(context.Background(), filter, update, opts)
+				_, err := collection.UpdateOne(context.Background(), filter, update, opts)
 				if err != nil {
 					fmt.Println(err)
 				}
-				fmt.Println("updated:", result.ModifiedCount)
 			} else {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
@@ -317,7 +387,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, cookie)
 			http.SetCookie(w, _cookie)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
-		case "/posts/remove":
+		case "/myProfile/removePost":
 			cookieLogin, _ := r.Cookie("login")
 			cookieToken, _ := r.Cookie("token")
 			if cookieLogin == nil || cookieToken == nil {
@@ -332,13 +402,13 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 			} else {
 				id := keys[0]
 				_id, _ := primitive.ObjectIDFromHex(id)
-				post, err := findPostFromID(_id)
+				post, err := getPostFromID(_id)
 				if err != nil {
 					http.Error(w, "", 200)
 					return
 				}
 
-				user, err := findUser(cookieLogin.Value)
+				user, err := getUserFromLogin(cookieLogin.Value)
 				if err != nil {
 					http.Redirect(w, r, "/login", http.StatusSeeOther)
 					return
@@ -386,6 +456,99 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 			// log.Println("/test")
 
 			// w.Write([]byte("/test - hello from server"))
+		case "/settings":
+			cookieLogin, _ := r.Cookie("login")
+			cookieToken, _ := r.Cookie("token")
+			if cookieLogin != nil && cookieToken != nil {
+				_, err := getUserFromLogin(cookieLogin.Value)
+				if err != nil {
+					http.Redirect(w, r, "/login", http.StatusSeeOther)
+					return
+				}
+			}
+
+			user, err := getUserFromLogin(cookieLogin.Value)
+			if err != nil {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				return
+			}
+
+			check := comparePasswords(cookieToken.Value, []byte(user.ID.String()+user.Password))
+			if check {
+				tmpl, err := template.ParseFiles(pagesPath+"settings.html", pagesPath+"_assets.html")
+				if err != nil {
+					http.Error(w, err.Error(), 404)
+					return
+				}
+
+				_time := time.Unix(user.Date, 0)
+				posts := getPostsFromUserID(user.ID.Hex())
+
+				type Parse struct {
+					User
+					NewDate  time.Time
+					NewID    string
+					Posts    []Post
+					LoggedIn bool
+				}
+				parse := Parse{
+					User:     user,
+					NewDate:  _time,
+					NewID:    user.ID.Hex(),
+					Posts:    posts,
+					LoggedIn: true,
+				}
+				if err := tmpl.Execute(w, parse); err != nil {
+					http.Error(w, err.Error(), 404)
+					return
+				}
+			} else {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				return
+			}
+		case "/about":
+			tmpl, err := template.ParseFiles(pagesPath + "about.html")
+			if err != nil {
+				http.Error(w, err.Error(), 404)
+				return
+			}
+
+			if err := tmpl.Execute(w, nil); err != nil {
+				http.Error(w, err.Error(), 404)
+				return
+			}
+		case "/users":
+			tmpl, err := template.ParseFiles(pagesPath+"users.html", pagesPath+"_assets.html")
+			if err != nil {
+				http.Error(w, err.Error(), 404)
+				return
+			}
+
+			loggedIn := false
+			cookieLogin, _ := r.Cookie("login")
+			cookieToken, _ := r.Cookie("token")
+			if cookieLogin != nil && cookieToken != nil {
+				loggedIn = true
+			}
+
+			users := getAllUsers()
+			for i, v := range users {
+				users[i].FullDate = time.Unix(v.Date, 0).Format("2006-01-02 15:04:05")
+			}
+
+			type Parse struct {
+				LoggedIn bool
+				Users    []User
+			}
+			parse := Parse{
+				LoggedIn: loggedIn,
+				Users:    users,
+			}
+
+			if err := tmpl.Execute(w, parse); err != nil {
+				http.Error(w, err.Error(), 404)
+				return
+			}
 		}
 	case "POST":
 		path := r.URL.Path
@@ -406,20 +569,20 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 			name := r.FormValue("name")
 
 			if len(login) < 4 {
-				createCookie(w, "register_info", "min. login characters: 4")
+				createNotifyCookie(w, "register_info", "min. login characters: 4")
 				http.Redirect(w, r, "/register", http.StatusSeeOther)
 				return
 			} else if len(password) < 4 {
-				createCookie(w, "register_info", "min. password characters: 4")
+				createNotifyCookie(w, "register_info", "min. password characters: 4")
 				http.Redirect(w, r, "/register", http.StatusSeeOther)
 				return
 			} else if len(name) < 1 {
-				createCookie(w, "register_info", "min. name characters: 1")
+				createNotifyCookie(w, "register_info", "min. name characters: 1")
 				http.Redirect(w, r, "/register", http.StatusSeeOther)
 				return
 			}
 
-			_, _err := findUser(login)
+			_, _err := getUserFromLogin(login)
 			if _err != nil {
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
@@ -452,7 +615,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				}
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 			} else {
-				createCookie(w, "register_info", "login already exists")
+				createNotifyCookie(w, "register_info", "login already exists")
 				http.Redirect(w, r, "/register", http.StatusSeeOther)
 			}
 		case "/login":
@@ -464,18 +627,18 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 			password := r.FormValue("password")
 
 			if len(login) < 4 {
-				createCookie(w, "login_info", "min. login characters: 4")
+				createNotifyCookie(w, "login_info", "min. login characters: 4")
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			} else if len(password) < 4 {
-				createCookie(w, "login_info", "min. password characters: 4")
+				createNotifyCookie(w, "login_info", "min. password characters: 4")
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
 
-			user, err := findUser(login)
+			user, err := getUserFromLogin(login)
 			if err != nil {
-				createCookie(w, "login_info", "Incorrect username or password.")
+				createNotifyCookie(w, "login_info", "Incorrect username or password.")
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 			} else {
 				check := comparePasswords(user.Password, []byte(password))
@@ -506,7 +669,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 					http.SetCookie(w, _cookie)
 					http.Redirect(w, r, "/profile", http.StatusSeeOther)
 				} else {
-					createCookie(w, "login_info", "Incorrect username or password.")
+					createNotifyCookie(w, "login_info", "Incorrect username or password.")
 					http.Redirect(w, r, "/login", http.StatusSeeOther)
 				}
 			}
@@ -530,7 +693,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			user, err := findUser(cookieLogin.Value)
+			user, err := getUserFromLogin(cookieLogin.Value)
 			if err != nil {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
@@ -566,6 +729,56 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
+		case "/settings/changePassword":
+			if err := r.ParseForm(); err != nil {
+				fmt.Fprintf(w, "ParseForm() err: %v", err)
+				return
+			}
+			new := r.FormValue("new")
+
+			cookieLogin, _ := r.Cookie("login")
+			cookieToken, _ := r.Cookie("token")
+			if cookieLogin == nil || cookieToken == nil {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				return
+			}
+
+			user, err := getUserFromLogin(cookieLogin.Value)
+			if err != nil {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				return
+			}
+
+			check := comparePasswords(cookieToken.Value, []byte(user.ID.String()+user.Password))
+			if check {
+				hashedPassword, err := hashAndSalt([]byte(new))
+				if err != nil {
+					fmt.Fprintln(w, err)
+					return
+				}
+
+				collection := mongoClient.Database("main").Collection("users")
+				filter := bson.M{"_id": bson.M{"$eq": user.ID}}
+				opts := options.Update().SetUpsert(true)
+				update := bson.D{{"$set", bson.D{
+					{"password", hashedPassword},
+				}}}
+				res, err := collection.UpdateOne(context.TODO(), filter, update, opts)
+				if err != nil {
+					http.Error(w, "", http.StatusForbidden)
+					return
+				}
+				if res.ModifiedCount > 0 {
+					http.Redirect(w, r, "/logout", http.StatusSeeOther)
+					return
+				} else {
+					http.Error(w, "", http.StatusNotFound)
+					return
+				}
+			} else {
+				http.Error(w, "", http.StatusForbidden)
+				return
+			}
 		}
 	default:
 		fmt.Fprintf(w, "go home samurai")
@@ -590,12 +803,10 @@ func isPublicPath(path string) bool {
 	return false
 }
 
-func findUser(login string) (User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+func getUserFromLogin(login string) (User, error) {
 	collection := mongoClient.Database("main").Collection("users")
 	var user User
-	err := collection.FindOne(ctx, bson.M{
+	err := collection.FindOne(context.TODO(), bson.M{
 		"login": login,
 	}).Decode(&user)
 	if err != nil {
@@ -604,7 +815,7 @@ func findUser(login string) (User, error) {
 	return user, nil
 }
 
-func removeCookie(w http.ResponseWriter, name string) {
+func removeNotifyCookie(w http.ResponseWriter, name string) {
 	cookie := &http.Cookie{
 		Name:   name,
 		Value:  "",
@@ -613,7 +824,7 @@ func removeCookie(w http.ResponseWriter, name string) {
 	http.SetCookie(w, cookie)
 }
 
-func createCookie(w http.ResponseWriter, name, value string) {
+func createNotifyCookie(w http.ResponseWriter, name, value string) {
 	cookie := &http.Cookie{
 		Name:   name,
 		Value:  value,
@@ -639,7 +850,7 @@ func comparePasswords(hashedPassword string, password []byte) bool {
 	return true
 }
 
-func findPostsFromUserID(uid string) []bson.M {
+func getPostsFromUserID(uid string) []Post {
 	collection := mongoClient.Database("main").Collection("posts")
 
 	opts := options.Find()
@@ -648,9 +859,9 @@ func findPostsFromUserID(uid string) []bson.M {
 		log.Fatal(err)
 	}
 
-	var results []bson.M
+	var results []Post
 	if err = cursor.All(context.TODO(), &results); err != nil {
-		return []bson.M{}
+		return []Post{}
 	}
 	// for _, result := range results {
 	// 	return result
@@ -658,7 +869,7 @@ func findPostsFromUserID(uid string) []bson.M {
 	return results
 }
 
-func findPostFromID(id primitive.ObjectID) (Post, error) {
+func getPostFromID(id primitive.ObjectID) (Post, error) {
 	collection := mongoClient.Database("main").Collection("posts")
 	var post Post
 	err := collection.FindOne(context.TODO(), bson.M{
@@ -668,6 +879,46 @@ func findPostFromID(id primitive.ObjectID) (Post, error) {
 		return post, err
 	}
 	return post, nil
+}
+
+func getUserFromLink(link string) (User, error) {
+	collection := mongoClient.Database("main").Collection("users")
+	var user User
+	err := collection.FindOne(context.TODO(), bson.M{
+		"link": link,
+	}).Decode(&user)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
+}
+
+func getAllUsers() []User {
+	collection := mongoClient.Database("main").Collection("users")
+	opts := options.Find()
+	cursor, err := collection.Find(context.TODO(), bson.D{{}}, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var results []User
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		return []User{}
+	}
+
+	return results
+}
+
+func isActiveCookie(r *http.Request) bool {
+	cookieLogin, err := r.Cookie("login")
+	cookieToken, err := r.Cookie("token")
+	if err != nil {
+		return false
+	}
+	if cookieLogin != nil && cookieToken != nil {
+		return true
+	}
+	return false
 }
 
 type User struct {
@@ -684,16 +935,18 @@ type User struct {
 	AuthWithTelegram   bool               `bson:"auth_with_telegram"`
 	TelegramAuthNotify bool               `bson:"telegram_auth_notify"`
 	Role               string             `bson:"role"`
+	FullDate           string             `bson:"full_date,omitempty"`
 }
 
 type Post struct {
-	ID    primitive.ObjectID `bson:"_id"`
-	UID   string             `bson:"uid"`
-	Date  int64              `bson:"date"`
-	Text  string             `bson:"text"`
-	Image string             `bson:"image"`
-	Hide  bool               `bson:"hide"`
-	Like  PostLike
+	ID       primitive.ObjectID `bson:"_id"`
+	UID      string             `bson:"uid"`
+	Date     int64              `bson:"date"`
+	Text     string             `bson:"text"`
+	Image    string             `bson:"image"`
+	Hide     bool               `bson:"hide"`
+	FullDate string             `bson:"full_date"`
+	Like     PostLike
 }
 
 type PostLike struct {

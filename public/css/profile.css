@@ -59,6 +59,7 @@ body {
           text-decoration: none;
           text-align: center; }
           .container_inner .top .t1 a:hover {
+            cursor: pointer;
             background-color: white;
             color: #323232; }
         .container_inner .top .t1 img {
@@ -118,7 +119,7 @@ body {
             width: 400px; }
           .container_inner .main .posts .post_top {
             display: flex;
-            justify-content: space-evenly;
+            justify-content: space-around;
             align-items: center; }
             .container_inner .main .posts .post_top .heart {
               display: flex;
@@ -151,3 +152,26 @@ body {
               cursor: pointer; }
         .container_inner .main .posts .post + .post {
           margin-top: 15px; }
+
+.header {
+  background-color: #323232;
+  color: wheat; }
+  .header_inner {
+    height: 32px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center; }
+    .header_inner a {
+      color: wheat;
+      text-decoration: none; }
+    .header_inner menu {
+      display: flex; }
+      .header_inner menu li {
+        list-style: none; }
+        .header_inner menu li + li {
+          margin-left: 16px; }
+        .header_inner menu li a {
+          color: wheat;
+          text-decoration: none; }
+          .header_inner menu li a:hover {
+            color: white; }

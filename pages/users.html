@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/public/css/users.css">
+    <link rel="shortcut icon" href="https://go.dev/favicon.ico" type="image/x-icon">
+    <title>All users</title>
+</head>
+<body>
+    {{ template "header" . }}
+    <div class="container">
+        <div class="container_inner">
+            <div class="items">
+                {{ range .Users }}
+                <a href="/@{{ .Link }}">
+                    <div class="item">
+                        <div class="item_inner">
+                            {{ if .Avatar }}
+                            <img src="{{ .Avatar }}" alt="">
+                            {{ end }}
+                            <div class="column">
+                                <p>{{ .Name }}</p>
+                                <p>@{{ .Link }}</p>
+                                <p>{{ .FullDate }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

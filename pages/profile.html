@@ -7,33 +7,6 @@
     <link rel="shortcut icon" href="https://go.dev/favicon.ico" type="image/x-icon">
     <title>{{ .Name }}</title>
     <script defer>
-        function hideTelegramAuth(){
-            const el = document.querySelector('.telegramAuth')
-            if (el) el.style = 'display: none;'
-
-            fetch('./myProfile/telegramAuthNotify')
-            .then(function(response) {
-                if (response.status !== 200) {
-                    console.log('Looks like there was a problem. Status Code: ' + response.status)
-                    return
-                }
-
-                response.json().then(function(data) {
-                    console.log(data)
-                })}
-            )
-            .catch(function(err) {
-                console.log('Fetch Error :-S', err)
-            })
-        }
-
-        function showCreatePostContainer(){
-            const button = document.querySelector('#createPostButton')
-            if (button) button.style = 'display: none;'
-            const container = document.querySelector('.createPostContainer')
-            if (container) container.style = ''
-        }
-
         function removePost(id) {
             fetch('./myProfile/removePost?q=' + id)
             .then(  
@@ -49,7 +22,7 @@
                 console.log('Fetch Error :-S', err)
             })
         }
-        
+
         function resetAvatar(id) {
             fetch('./myProfile/resetAvatar?q=' + id)
             .then(  
@@ -68,21 +41,16 @@
     </script>
 </head>
 <body>
-    {{ if .TelegramAuthNotify }}
-    <div class="telegramAuth">
-        <div class="telegramAuth_inner">
-            <p>Your account don't use Telegram auth. You can add it on <a href="/settings"><b>settings page</b></a></p><button onclick="hideTelegramAuth()">Close</button>
-        </div>
-    </div>
-    {{ end }}
     {{ template "header" . }}
     <div class="container">
         <div class="container_inner">
             <div class="top">
                 <div class="t1">
                     <img src="{{ .Avatar }}" alt="">
+                    <a href="/msg/@{{ .Link }}">Send message</a>
+                    {{ if eq .Role "god" }}
                     <a onclick="resetAvatar('{{ .ID.Hex }}')">Reset avatar</a>
-                    <a href="/settings">Settings</a>
+                    {{ end }}
                 </div>
                 <div class="t2">
                     <div>
@@ -113,38 +81,22 @@
                 </div>
             </div>
             <div class="main">
-                <div class="createPost">
-                    <button id="createPostButton" onclick="showCreatePostContainer()">Create post</button>
-                    <div class="createPostContainer" style="display: none;">
-                        <form action="/posts/create" method="POST">
-                            <p><b>Create post</b></p>
-                            <textarea name="text" cols="50" rows="2" placeholder="text" maxlength="150"></textarea>
-                            <input type="text" name="image" placeholder="link to image" maxlength="100">
-                            <div class="info">
-                                <p>Max. characters in text: 300</p>
-                                <p>Max. characters in image: 100</p>
-                                <p>You can leave the image field empty</p>
-                            </div>
-                            <button>Create</button>
-                        </form>
-                    </div>
-                </div>
                 <div class="posts">
                     {{ range .Posts }}
-                    {{ if not .Hide }}
+                    {{ if not .hide }}
                     <div class="post">
                         <div class="post_top">
-                            <p>{{ .FullDate }}</p>
+                            <p>{{ .date }}</p>
                             <div class="heart">
                                 <img src="/public/img/heart.svg" alt="">
-                                <p>12.345</p>
+                                <p>0</p>
                             </div>
-                            <button onclick="removePost('{{ .ID.Hex }}')">delete post</button>
+                            <button onclick="removePost('{{ ._id.Hex }}')">delete post</button>
                         </div>
                         <div class="post_main">
-                            <p>{{ .Text }}</p>
-                            {{ if .Image }}
-                            <img src="{{ .Image }}" alt="">
+                            <p>{{ .text }}</p>
+                            {{ if .image }}
+                            <img src="{{ .image }}" alt="">
                             {{ end }}
                         </div>
                         <div class="post_bottom">

@@ -1,38 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/public/css/settings.css">
-    <link rel="shortcut icon" href="https://go.dev/favicon.ico" type="image/x-icon">
-    <title>Settings page</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="/public/css/settings.css">
+	<link rel="shortcut icon" href="https://go.dev/favicon.ico" type="image/x-icon">
+	<title>Settings page</title>
+	<script defer>
+		function save(_v) {
+			let name = document.getElementById('name').value
+			let description = document.getElementById('description').value
+			let country = document.getElementById('country').value
+			let avatar = document.getElementById('avatar').value
+			let link = document.getElementById('link').value
+			let telegram = document.getElementById('telegram').value
+
+			let k, v
+			if (_v == "name") {
+				k = _v
+				v = name
+			} else if (_v == "description") {
+				k = _v
+				v = description
+			} else if (_v == "country") {
+				k = _v
+				v = country
+			} else if (_v == "avatar") {
+				k = _v
+				v = avatar
+			} else if (_v == "link") {
+				k = _v
+				v = link
+			} else if (_v == "telegram") {
+				k = _v
+				v = telegram
+			} else {
+				return
+			}
+
+			fetch(`./settings/save?k=${k}&v=${v}`)
+			.then(function(response) {
+					if (response.status == 200) {
+						response.json().then(function(data) {
+							alert(data.data)
+						})
+					} else {
+						alert('Status code: ' + response.statusText + ' ' + response.status)
+					}
+				}
+			)
+		}
+	</script>
 </head>
 <body>
-    <div class="container">
-        <div class="container_inner">
-            <form action="/settings" method="POST">
-                <h2>Settings page</h2>
-                <p>Name</p>
-                <input type="text" placeholder="name" name="name" value="">
-                <p>Description</p>
-                <input type="text" placeholder="description" name="description" value="">
-                <p>Country</p>
-                <input type="text" placeholder="country" name="country" value="">
-                <p>Avatar</p>
-                <input type="text" placeholder="link to image" name="avatar" value="">
-                <p>Profile link (web.com/@link)</p>
-                <input type="text" placeholder="link" name="link" value="">
-                <p>Your telegram id</p>
-                <input type="text" placeholder="telegram id" name="telegram" value="">
-                <p>Turn on auth with Telegram account</p>
-                <button>turn on</button>
-                <button type="submit">save all</button>
-                <p>Change password</p>
-                <input type="password" placeholder="current password">
-                <input type="password" placeholder="new password">
-                <button>change password</button>
-            </form>
-        </div>
-    </div>
+	{{ template "header" . }}
+	<div class="container">
+		<div class="container_inner">
+			<h2 class="title">Settings page</h2>
+			<div class="row">
+				<p>Name</p>
+				<input type="text" placeholder="name" value="{{ .Name }}" id="name">
+				<button onclick="save('name')">save</button>
+			</div>
+
+			<div class="row">
+				<p>Description</p>
+				<input type="text" placeholder="description" value="{{ .Description }}" id="description">
+				<button onclick="save('description')">save</button>
+			</div>
+			
+			<div class="row">
+				<p>Country</p>
+				<input type="text" placeholder="country" value="{{ .Country }}" id="country">
+				<button onclick="save('country')">save</button>
+			</div>
+
+			<div class="row">
+				<p>Avatar</p>
+				<input type="text" placeholder="link to image" value="{{ .Avatar }}" id="avatar">
+				<button onclick="save('avatar')">save</button>
+			</div>
+
+			<div class="row">
+				<p>Profile link (@yourLink)</p>
+				<input type="text" placeholder="link" value="{{ .Link }}" id="link">
+				<button onclick="save('link')">save</button>
+			</div>
+			
+			<div class="row">
+				<p>Telegram ID</p>
+				<input type="text" placeholder="telegram id" value="{{ .TelegramAccount }}" id="telegram">
+				<button onclick="save('telegram')">save</button>
+			</div>
+			
+			<div class="row">
+				<p>Log in w/ Telegram</p>
+				<button>turn on</button>
+			</div>
+
+			<div class="row">
+				<p>Change password</p>
+				<form action="/settings/changePassword" method="POST">
+					<input type="password" placeholder="new password" name="new">
+					<button type="submit">change password</button>
+				</form>
+			</div>
+		</div>
+	</div>
 </body>
 </html>

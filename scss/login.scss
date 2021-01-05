@@ -47,6 +47,18 @@ body {
             & h4 {
                 color: rgb(200, 70, 70);
             }
+
+            & h5 {
+
+                a {
+                    text-decoration: none;
+                    color: rgb(50, 125, 50);
+
+                    &:hover {
+                        color: #323232;
+                    }
+                }
+            }
         }
     }
 }
