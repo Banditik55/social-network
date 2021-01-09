@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -548,6 +549,89 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 			if err := tmpl.Execute(w, parse); err != nil {
 				http.Error(w, err.Error(), 404)
 				return
+			}
+		case "/settings/save":
+			active := isActiveCookie(r)
+			if !active {
+				http.Redirect(w, r, "/logout", http.StatusSeeOther)
+				return
+			}
+
+			cookieLogin, _ := r.Cookie("login")
+			cookieToken, _ := r.Cookie("token")
+			user, err := getUserFromLogin(cookieLogin.Value)
+			if err != nil {
+				http.Error(w, "", http.StatusNotFound)
+				return
+			}
+
+			check := comparePasswords(cookieToken.Value, []byte(user.ID.String()+user.Password))
+			if !check {
+				http.Redirect(w, r, "/logout", http.StatusSeeOther)
+				return
+			}
+
+			_k, _ := r.URL.Query()["k"]
+			_v, _ := r.URL.Query()["v"]
+
+			k := _k[0]
+			v := _v[0]
+			vInt := 0
+			msg := ""
+
+			if len(k) > 0 && len(v) > 0 {
+				switch k {
+				case "name":
+					msg = "Name successfully changed"
+				case "description":
+					msg = "Description successfully changed"
+				case "country":
+					msg = "Country successfully changed"
+				case "avatar":
+					msg = "Avatar successfully changed"
+				case "link":
+					msg = "Profile link successfully changed"
+				case "telegram":
+					k = "telegram_account"
+					vInt, _ = strconv.Atoi(v)
+					msg = "Telegram account successfully changed"
+				}
+
+				collection := mongoClient.Database("main").Collection("users")
+				filter := bson.M{"_id": bson.M{"$eq": user.ID}}
+				opts := options.Update().SetUpsert(true)
+				var doc bson.D
+				if k == "telegram_account" {
+					doc = bson.D{
+						{k, vInt},
+					}
+				} else {
+					doc = bson.D{
+						{k, v},
+					}
+				}
+				update := bson.D{{"$set", doc}}
+				res, err := collection.UpdateOne(context.TODO(), filter, update, opts)
+				if err != nil {
+					http.Error(w, "", http.StatusForbidden)
+					return
+				}
+				if res.ModifiedCount > 0 {
+					// type Article struct {
+					// 	Data string `json:"data"`
+					// }
+					// Articles := Article{
+					// 	Data: "good",
+					// }
+					data := bson.M{
+						"data": msg,
+					}
+					json.NewEncoder(w).Encode(data)
+					return
+				} else {
+					http.Error(w, "", http.StatusNotFound)
+					return
+				}
 			}
 		}
 	case "POST":
