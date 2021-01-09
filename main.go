@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	pagesPath = "pages/"
+	pagesPath     = "pages/"
+	defaultAvatar = "https://upload.wikimedia.org/wikipedia/commons/a/a6/Anonymous_emblem.svg"
 )
 
 var (
@@ -330,7 +331,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
-		case "/myProfile/telegramAuthNotify":
+		case "/profile/telegramAuthNotify":
 			cookieLogin, _ := r.Cookie("login")
 			cookieToken, _ := r.Cookie("token")
 			if cookieLogin == nil || cookieToken == nil {
@@ -388,7 +389,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, cookie)
 			http.SetCookie(w, _cookie)
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
-		case "/myProfile/removePost":
+		case "/profile/removePost":
 			cookieLogin, _ := r.Cookie("login")
 			cookieToken, _ := r.Cookie("token")
 			if cookieLogin == nil || cookieToken == nil {
@@ -617,12 +618,6 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				if res.ModifiedCount > 0 {
-					// type Article struct {
-					// 	Data string `json:"data"`
-					// }
-					// Articles := Article{
-					// 	Data: "good",
-					// }
 					data := bson.M{
 						"data": msg,
 					}
@@ -632,6 +627,48 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, "", http.StatusNotFound)
 					return
 				}
+			}
+		case "/profile/resetAvatar":
+			active := isActiveCookie(r)
+			if !active {
+				http.Redirect(w, r, "/logout", http.StatusSeeOther)
+				return
+			}
+
+			cookieLogin, _ := r.Cookie("login")
+			cookieToken, _ := r.Cookie("token")
+			user, err := getUserFromLogin(cookieLogin.Value)
+			if err != nil {
+				http.Error(w, "", http.StatusNotFound)
+				return
+			}
+
+			check := comparePasswords(cookieToken.Value, []byte(user.ID.String()+user.Password))
+			if !check {
+				http.Redirect(w, r, "/logout", http.StatusSeeOther)
+				return
+			}
+
+			collection := mongoClient.Database("main").Collection("users")
+			filter := bson.M{"_id": bson.M{"$eq": user.ID}}
+			opts := options.Update().SetUpsert(true)
+			update := bson.D{{"$set", bson.D{
+				{"avatar", defaultAvatar},
+			}}}
+			res, err := collection.UpdateOne(context.TODO(), filter, update, opts)
+			if err != nil {
+				http.Error(w, "", http.StatusForbidden)
+				return
+			}
+			if res.ModifiedCount > 0 {
+				data := bson.M{
+					"data": "Avatar successfully changed",
+				}
+				json.NewEncoder(w).Encode(data)
+				return
+			} else {
+				http.Error(w, "", http.StatusNotFound)
+				return
 			}
 		}
 	case "POST":
@@ -684,7 +721,7 @@ func webRender(w http.ResponseWriter, r *http.Request) {
 					Name:               name,
 					Description:        "",
 					Country:            "",
-					Avatar:             "",
+					Avatar:             defaultAvatar,
 					Link:               _link,
 					Date:               time.Now().Unix(),
 					TelegramAccount:    0,

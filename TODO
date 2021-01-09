@@ -55,6 +55,6 @@
  .authCode
 
 .TODO
- -> messages
  -> likes
- -> reset avatar
+ -> messages
+ -> auth with telegram bot

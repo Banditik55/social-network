@@ -65,8 +65,7 @@ body {
         .container_inner .top .t1 img {
           width: 150px;
           height: 150px;
-          border-radius: 14px;
-          border: 1px #323232 solid; }
+          border-radius: 14px; }
       .container_inner .top .t2 {
         margin-left: 30px; }
         .container_inner .top .t2 div + div {

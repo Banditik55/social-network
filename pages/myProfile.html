@@ -11,7 +11,7 @@
             const el = document.querySelector('.telegramAuth')
             if (el) el.style = 'display: none;'
 
-            fetch('./myProfile/telegramAuthNotify')
+            fetch('./profile/telegramAuthNotify')
             .then(function(response) {
                 if (response.status !== 200) {
                     console.log('Looks like there was a problem. Status Code: ' + response.status)
@@ -35,7 +35,7 @@
         }
 
         function removePost(id) {
-            fetch('./myProfile/removePost?q=' + id)
+            fetch('./profile/removePost?q=' + id)
             .then(  
                 function(response) {  
                     if (response.status !== 200) {  
@@ -50,8 +50,8 @@
             })
         }
         
-        function resetAvatar(id) {
-            fetch('./myProfile/resetAvatar?q=' + id)
+        function resetAvatar() {
+            fetch('./profile/resetAvatar')
             .then(  
                 function(response) {  
                     if (response.status !== 200) {  
@@ -81,7 +81,7 @@
             <div class="top">
                 <div class="t1">
                     <img src="{{ .Avatar }}" alt="">
-                    <a onclick="resetAvatar('{{ .ID.Hex }}')">Reset avatar</a>
+                    <a onclick="resetAvatar()">Reset avatar</a>
                     <a href="/settings">Settings</a>
                 </div>
                 <div class="t2">
@@ -137,7 +137,7 @@
                             <p>{{ .FullDate }}</p>
                             <div class="heart">
                                 <img src="/public/img/heart.svg" alt="">
-                                <p>12.345</p>
+                                <p>0</p>
                             </div>
                             <button onclick="removePost('{{ .ID.Hex }}')">delete post</button>
                         </div>
